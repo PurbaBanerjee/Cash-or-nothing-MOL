@@ -1,19 +1,19 @@
 import numpy as np
 import scipy.stats as si
-import sympy as sy
+
 import math
 from scipy.linalg import expm
 from numpy.linalg import inv
 from matplotlib import pyplot as plt
 %matplotlib inline
-cx=80.0
+cx=89.0
 d=1.2
-n=60
+n=100
 g=[]
-y=[]
 g1=[]
 g2=[]
-while n<1921:
+y=[]
+while n<2000:
     dx=1/n
     n1=n+1
     n2=n-1
@@ -36,6 +36,10 @@ while n<1921:
             xx[0]=0
         else:
             xx[i]=(cx*x[i])/(d-x[i])
+       
+    IndexFor100 = max(np.where(xx[:-1]<=100)[0])
+    
+    xx[IndexFor100+1]=100
     fl=xx[n1]
     for i in range(1,n1+1):
         h[i]=xx[i]-xx[i-1]
@@ -43,9 +47,15 @@ while n<1921:
     B=np.zeros((n,n))
     C=np.zeros((n,n))
     A1=np.zeros((n,n))
+    B1=np.zeros((n,n))
+    A2=np.zeros((n,n))
     B2=np.zeros((n,n))
     U0=np.zeros(n)
+    V2=np.zeros(n)
+    V1=np.zeros(n)
     frhs=np.zeros(n)
+    frhs2=np.zeros(n)
+    frhs1=np.zeros(n)
     for i in range(n):
         A[i][i]=-(sigma*sigma*xx[i+1]*xx[i+1])/(h[i+1]*h[i+2])
         C[i][i]=-r
@@ -71,23 +81,21 @@ while n<1921:
     E0=np.dot(expm(T*AA),U)
     G1=np.dot(inv(AA),(expm(T*AA))-np.identity(n))
     E=E0+np.dot(G1,F)
-    m=int((2/3)*n-1)
+    
+    
+    m=IndexFor100
     print("The number of grid points is:",n)
-    print("The value at xx=100 is:", E[m])
     error=np.log(abs(E[m]-46.587))
-    print("The error is:", error)
     M=-np.dot(AA,E0)-np.dot(expm(T*AA),F)
     print("The theta is:",M[m])
     errort=np.log(abs(M[m]-2.364))
-    print("The error is:", errort)
+    print("The error in theta is:", errort)
     for i in range(n-1):
         B2[i][i+1]=1/(h[i+1]+h[i+2])
     for i in range(1,n):
         B2[i][i-1]=-1/(h[i+1]+h[i+2])
     E2=np.dot(B2,E)
-    print("The delta at xx=100 is:",E2[m])
     error2=np.log(abs(E2[m]-1.289))
-    print("The error in delta is:", error2)
     for i in range(n):
         A1[i][i]=-2/(h[i+1]*h[i+2])
     for i in range(n-1):
@@ -95,15 +103,13 @@ while n<1921:
     for i in range(1,n):
         A1[i][i-1]=2/((h[i+1]+h[i+2])*h[i+1])
     E3=np.dot(A1,E)
-    print("The gamma at xx=100 is:",E3[m])
     error3=np.log(abs(E3[m]+0.011))
-    print("The error in gamma is:", error3)
     g.append(error)
     g1.append(error2)
     g2.append(error3)
     y.append(n)
     n=2*n
 fig, ax = plt.subplots()
-ax.plot(y,g, label='Cash or nothing option')
-ax.plot(y,g1, label='cash or nothing option delta error')
-ax.plot(y,g2, label='cash or nothing option gamma error')
+ax.plot(y,g, label='European call')
+ax.plot(y,g1, label='European call delta error')
+ax.plot(y,g2, label='European call gamma error')
