@@ -1,0 +1,435 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[165]:
+
+
+import numpy as np
+from scipy.stats import norm
+import time
+import scipy.stats as si
+import math
+from scipy.linalg import expm
+from numpy.linalg import inv
+from matplotlib import pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+cx=89
+d=1.2
+n=100
+g=[]
+g1=[]
+g2=[]
+y=[]
+
+while n<3500:
+    dx=1/n
+    n1=n+1
+    n2=n-1
+    sigma=0.3
+    r=0.03
+    T=1
+    K=100
+    t1=time.time()
+    h=np.zeros(n1+2)
+    x=np.zeros(n1+1)
+    h=np.zeros(n1+2)
+    x[1:n1]=dx
+    x = np.cumsum(x)
+    x[n1]=1.1
+    xx=np.zeros(n1+1)
+    xx=(cx*x)/(d-x)
+    #xx = np.linspace(50, 300, num=n+2)
+  
+  
+    
+    indexFor100 = max(np.where(xx <=100 )[0])
+    xx[indexFor100+1] = 100
+    
+    fl=xx[n1]
+    for i in range(1,n1+1):
+        h[i]=xx[i]-xx[i-1]
+    A=np.zeros((n,n))
+    B=np.zeros((n,n))
+    C=np.zeros((n,n))
+    A1=np.zeros((n,n))
+    B1=np.zeros((n,n))
+    A2=np.zeros((n,n))
+    B2=np.zeros((n,n))
+    U0=np.zeros(n)
+    V2=np.zeros(n)
+    V1=np.zeros(n)
+    frhs=np.zeros(n)
+    frhs2=np.zeros(n)
+    frhs1=np.zeros(n)
+    xxSquare = xx*xx
+    hSquare =h[:n+1]*h[1:n+2]
+    hShift = h[:n+1]+h[1:n+2]
+    tempDia=(sigma*sigma*xxSquare[1:n+1])/hSquare[1:n+1]
+    
+    A = A-np.diag(tempDia) 
+    
+    np.fill_diagonal(C, -r)
+    tempDia = (sigma*sigma*xxSquare[1:n])/((hShift[1:n])*h[2:n+1])
+    tempDia2  = (r*xx[1:n])/(hShift[1:n])
+    A=A+np.diag(tempDia, k=1)
+    B = B +np.diag(tempDia2,k=1)
+    tempDia = (sigma*sigma*xxSquare[2:n+1])/((hShift[2:n+1])*h[2:n+1])
+    A=A+np.diag(tempDia, k=-1)
+    tempDia2 = -(r*xx[2:n+1])/(hShift[2:n+1])
+    B = B +np.diag(tempDia2,k=-1)
+    for i in range(n):
+        if (xx[i+1]>=K):
+            U0[i]=K
+        else:
+            U0[i]=0
+    fhs=((sigma*sigma*xx[n]*xx[n])/((h[n]+h[n+1])*h[n])) +((r*xx[n])/(h[n]+h[n+1]))
+    if (fl>K):
+        frhs[n-1]=fhs*K
+    else:
+        frhs[n-1]=0
+    
+    U=np.array([U0]).T
+    F=np.array([frhs]).T
+    AA=A+B+C
+    invAA = inv(AA)
+    idenN=np.identity(n)
+    
+    expMatrix = expm((T)*AA)
+    expMatrix1 = expMatrix
+    E0=np.dot(expMatrix,U)
+    G1=np.dot(invAA,expMatrix-idenN)
+    E=E0+np.dot(G1,F)
+    m=indexFor100
+    print("Index for xx = 100", m, np.where(xx==1))
+    print("The number of grid points is:",n)
+    print("The value at xx=100 is:",xx[m+1], E[m])
+    abse=abs(E[m]-46.587324)
+    print("The absolute error is:",abse)
+    error=np.log(abs(E[m]-46.587324))
+    print("The error is:", error)
+    t2=time.time()
+    print("The time-elapsed is:",t2-t1)
+    for i in range(n-1):
+        B2[i][i+1]=1/(h[i+1]+h[i+2])
+    for i in range(1,n):
+        B2[i][i-1]=-1/(h[i+1]+h[i+2])
+    E2=np.dot(B2,E)
+    print("The delta at xx=100 is:",E2[m])
+    error2=np.log(abs(E2[m+1]-1.289))
+    print("The error in delta is:", error2)
+    for i in range(n):
+        A1[i][i]=-2/(h[i+1]*h[i+2])
+    for i in range(n-1):
+        A1[i][i+1]=2/((h[i+1]+h[i+2])*h[i+2])
+    for i in range(1,n):
+        A1[i][i-1]=2/((h[i+1]+h[i+2])*h[i+1])
+    E3=np.dot(A1,E)
+    print("The gamma at xx=100 is:",E3[m])
+    error3=np.log(abs(E3[m]+0.011))
+    print("The error in gamma is:", error3)
+    g.append(error)
+    g1.append(error2)
+    g2.append(error3)
+    y.append(n)
+    n=2*n
+fig, ax = plt.subplots()
+ax.plot(y,np.exp(g), '-*',label='European call')
+ax.plot(y,np.exp(g1),'+-' ,label='European call delta error')
+ax.plot(y,np.exp(g2), 'o-',label='European call gamma error')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.grid('on')
+
+import scipy.stats as si
+def euro_price(S, K, T, r, sigma):
+    
+    #S: spot price
+    #K: strike price
+    #T: time to maturity
+    #r: interest rate
+    #sigma: volatility of underlying asset
+    import numpy as np
+from scipy.stats import norm
+import time
+import scipy.stats as si
+import math
+from scipy.linalg import expm
+from numpy.linalg import inv
+from matplotlib import pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+cx=89
+d=1.2
+n=100
+gxx=[]
+g1=[]
+g2=[]
+y=[]
+
+while n<3500:
+    dx=1/n
+    n1=n+1
+    n2=n-1
+    sigma=0.3
+    r=0.03
+    T=1
+    K=100
+    t1=time.time()
+    h=np.zeros(n1+2)
+   
+    xx = np.linspace(50, 300, num=n+2)
+  
+  
+    
+    indexFor100 = max(np.where(xx <=100 )[0])
+    xx[indexFor100+1] = 100
+    
+    fl=xx[n1]
+    for i in range(1,n1+1):
+        h[i]=xx[i]-xx[i-1]
+    A=np.zeros((n,n))
+    B=np.zeros((n,n))
+    C=np.zeros((n,n))
+    A1=np.zeros((n,n))
+    B1=np.zeros((n,n))
+    A2=np.zeros((n,n))
+    B2=np.zeros((n,n))
+    U0=np.zeros(n)
+    V2=np.zeros(n)
+    V1=np.zeros(n)
+    frhs=np.zeros(n)
+    frhs2=np.zeros(n)
+    frhs1=np.zeros(n)
+    xxSquare = xx*xx
+    hSquare =h[:n+1]*h[1:n+2]
+    hShift = h[:n+1]+h[1:n+2]
+    tempDia=(sigma*sigma*xxSquare[1:n+1])/hSquare[1:n+1]
+    
+    A = A-np.diag(tempDia) 
+    
+    np.fill_diagonal(C, -r)
+    tempDia = (sigma*sigma*xxSquare[1:n])/((hShift[1:n])*h[2:n+1])
+    tempDia2  = (r*xx[1:n])/(hShift[1:n])
+    A=A+np.diag(tempDia, k=1)
+    B = B +np.diag(tempDia2,k=1)
+    tempDia = (sigma*sigma*xxSquare[2:n+1])/((hShift[2:n+1])*h[2:n+1])
+    A=A+np.diag(tempDia, k=-1)
+    tempDia2 = -(r*xx[2:n+1])/(hShift[2:n+1])
+    B = B +np.diag(tempDia2,k=-1)
+    for i in range(n):
+        if (xx[i+1]>=K):
+            U0[i]=K
+        else:
+            U0[i]=0
+    fhs=((sigma*sigma*xx[n]*xx[n])/((h[n]+h[n+1])*h[n])) +((r*xx[n])/(h[n]+h[n+1]))
+    if (fl>K):
+        frhs[n-1]=fhs*K
+    else:
+        frhs[n-1]=0
+    
+    U=np.array([U0]).T
+    F=np.array([frhs]).T
+    AA=A+B+C
+    invAA = inv(AA)
+    idenN=np.identity(n)
+    
+    expMatrix = expm((T)*AA)
+    expMatrix1 = expMatrix
+    E0=np.dot(expMatrix,U)
+    G1=np.dot(invAA,expMatrix-idenN)
+    E=E0+np.dot(G1,F)
+    m=indexFor100
+    print("Index for xx = 100", m, np.where(xx==1))
+    print("The number of grid points is:",n)
+    print("The value at xx=100 is:",xx[m+1], E[m])
+    abse=abs(E[m]-46.587324)
+    print("The absolute error is:",abse)
+    error=np.log(abs(E[m]-46.587324))
+    print("The error is:", error)
+    t2=time.time()
+    print("The time-elapsed is:",t2-t1)
+    for i in range(n-1):
+        B2[i][i+1]=1/(h[i+1]+h[i+2])
+    for i in range(1,n):
+        B2[i][i-1]=-1/(h[i+1]+h[i+2])
+    E2=np.dot(B2,E)
+    print("The delta at xx=100 is:",E2[m])
+    error2=np.log(abs(E2[m+1]-1.289))
+    print("The error in delta is:", error2)
+    for i in range(n):
+        A1[i][i]=-2/(h[i+1]*h[i+2])
+    for i in range(n-1):
+        A1[i][i+1]=2/((h[i+1]+h[i+2])*h[i+2])
+    for i in range(1,n):
+        A1[i][i-1]=2/((h[i+1]+h[i+2])*h[i+1])
+    E3=np.dot(A1,E)
+    print("The gamma at xx=100 is:",E3[m])
+    error3=np.log(abs(E3[m]+0.011))
+    print("The error in gamma is:", error3)
+    gxx.append(error)
+    g1.append(error2)
+    g2.append(error3)
+    y.append(n)
+    n=2*n
+fig, ax = plt.subplots()
+ax.plot(y,np.exp(g), '-*',label='European call')
+ax.plot(y,np.exp(g1),'+-' ,label='European call delta error')
+ax.plot(y,np.exp(g2), 'o-',label='European call gamma error')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.grid('on')
+
+import numpy as np
+from scipy.stats import norm
+import time
+import scipy.stats as si
+import math
+from scipy.linalg import expm
+from numpy.linalg import inv
+from matplotlib import pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+cx=89
+d=1.2
+n=100
+gx=[]
+g1=[]
+g2=[]
+y=[]
+
+while n<3500:
+    dx=1/n
+    n1=n+1
+    n2=n-1
+    sigma=0.3
+    r=0.03
+    T=1
+    K=100
+    t1=time.time()
+    h=np.zeros(n1+2)
+   
+    xx = K*np.exp(np.linspace(-1, 1, num=n+2))
+  
+  
+    
+    indexFor100 = max(np.where(xx <=100 )[0])
+    xx[indexFor100+1] = 100
+    
+    fl=xx[n1]
+    for i in range(1,n1+1):
+        h[i]=xx[i]-xx[i-1]
+    A=np.zeros((n,n))
+    B=np.zeros((n,n))
+    C=np.zeros((n,n))
+    A1=np.zeros((n,n))
+    B1=np.zeros((n,n))
+    A2=np.zeros((n,n))
+    B2=np.zeros((n,n))
+    U0=np.zeros(n)
+    V2=np.zeros(n)
+    V1=np.zeros(n)
+    frhs=np.zeros(n)
+    frhs2=np.zeros(n)
+    frhs1=np.zeros(n)
+    xxSquare = xx*xx
+    hSquare =h[:n+1]*h[1:n+2]
+    hShift = h[:n+1]+h[1:n+2]
+    tempDia=(sigma*sigma*xxSquare[1:n+1])/hSquare[1:n+1]
+    
+    A = A-np.diag(tempDia) 
+    
+    np.fill_diagonal(C, -r)
+    tempDia = (sigma*sigma*xxSquare[1:n])/((hShift[1:n])*h[2:n+1])
+    tempDia2  = (r*xx[1:n])/(hShift[1:n])
+    A=A+np.diag(tempDia, k=1)
+    B = B +np.diag(tempDia2,k=1)
+    tempDia = (sigma*sigma*xxSquare[2:n+1])/((hShift[2:n+1])*h[2:n+1])
+    A=A+np.diag(tempDia, k=-1)
+    tempDia2 = -(r*xx[2:n+1])/(hShift[2:n+1])
+    B = B +np.diag(tempDia2,k=-1)
+    for i in range(n):
+        if (xx[i+1]>=K):
+            U0[i]=K
+        else:
+            U0[i]=0
+    fhs=((sigma*sigma*xx[n]*xx[n])/((h[n]+h[n+1])*h[n])) +((r*xx[n])/(h[n]+h[n+1]))
+    if (fl>K):
+        frhs[n-1]=fhs*K
+    else:
+        frhs[n-1]=0
+    
+    U=np.array([U0]).T
+    F=np.array([frhs]).T
+    AA=A+B+C
+    invAA = inv(AA)
+    idenN=np.identity(n)
+    
+    expMatrix = expm((T)*AA)
+    expMatrix1 = expMatrix
+    E0=np.dot(expMatrix,U)
+    G1=np.dot(invAA,expMatrix-idenN)
+    E=E0+np.dot(G1,F)
+    m=indexFor100
+    print("Index for xx = 100", m, np.where(xx==1))
+    print("The number of grid points is:",n)
+    print("The value at xx=100 is:",xx[m+1], E[m])
+    abse=abs(E[m]-46.587324)
+    print("The absolute error is:",abse)
+    error=np.log(abs(E[m]-46.587324))
+    print("The error is:", error)
+    t2=time.time()
+    print("The time-elapsed is:",t2-t1)
+    for i in range(n-1):
+        B2[i][i+1]=1/(h[i+1]+h[i+2])
+    for i in range(1,n):
+        B2[i][i-1]=-1/(h[i+1]+h[i+2])
+    E2=np.dot(B2,E)
+    print("The delta at xx=100 is:",E2[m])
+    error2=np.log(abs(E2[m+1]-1.289))
+    print("The error in delta is:", error2)
+    for i in range(n):
+        A1[i][i]=-2/(h[i+1]*h[i+2])
+    for i in range(n-1):
+        A1[i][i+1]=2/((h[i+1]+h[i+2])*h[i+2])
+    for i in range(1,n):
+        A1[i][i-1]=2/((h[i+1]+h[i+2])*h[i+1])
+    E3=np.dot(A1,E)
+    print("The gamma at xx=100 is:",E3[m])
+    error3=np.log(abs(E3[m]+0.011))
+    print("The error in gamma is:", error3)
+    gx.append(error)
+    g1.append(error2)
+    g2.append(error3)
+    y.append(n)
+    n=2*n
+fig, ax = plt.subplots()
+ax.plot(y,np.exp(g), '-*',label='European call')
+ax.plot(y,np.exp(g1),'+-' ,label='European call delta error')
+ax.plot(y,np.exp(g2), 'o-',label='European call gamma error')
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.grid('on')
+
+slope, intercept = np.polyfit(np.log(y),g, 1)
+print(slope)
+
+import matplotlib as mpl
+fig, ax = plt.subplots()
+ax.plot(y,np.exp(g), '-*',label='Non-Uniform Grid 1')
+ax.plot(y,np.exp(gx), '-+',label='Non-Uniform Grid 2')
+ax.plot(y,np.exp(gxx), '-o',label='Uniform Grid 1')
+
+ax.set_yscale('log')
+ax.set_xscale('log')
+
+plt.xlabel('Number of Grid Points')
+    
+plt.ylabel('Absolute error')
+mpl.rcParams.update({'font.size': 14})
+ax.grid(b=True, which='major', color='k', linestyle='-')
+
+ax.grid(b=True, which='minor', color='k', linestyle='--')
+
+plt.legend()
+plt.grid()
+
+slope, intercept = np.polyfit(np.log(y), gxx, 1)
+print(slope)
